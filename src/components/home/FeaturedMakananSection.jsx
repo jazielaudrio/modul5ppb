@@ -94,11 +94,12 @@ export default function FeaturedMakananSection({ recipes, loading, error, onReci
               <div className="absolute inset-0 bg-linear-to-br from-white/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
               {/* Recipe Image*/}
-              <div className="relative h-32 md:h-56 overflow-hidden">
+                <div className="relative h-32 md:h-56 overflow-hidden">
                 <img 
                   src={recipe.image_url}
                   alt={recipe.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy" // ADDED
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
               </div>

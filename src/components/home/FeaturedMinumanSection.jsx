@@ -95,11 +95,12 @@ export default function FeaturedMinumanSection({ recipes, loading, error, onReci
               
               <div className="flex">
                 {/* Recipe Image */}
-                <div className="h-29 w-28 md:h-48 md:w-48 flex-shrink-0 overflow-hidden">
+                  <div className="h-29 w-28 md:h-48 md:w-48 flex-shrink-0 overflow-hidden">
                   <img 
                     src={recipe.image_url}
                     alt={recipe.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy" // ADDED
                   />
                 </div>
 

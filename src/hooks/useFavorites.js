@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import favoriteService from '../services/favoriteService';
 import userService from '../services/userService';
+import recipeService from '../services/recipeService'; // <-- NEW IMPORT: Needed to fetch full recipe details
 
 /**
  * Get user identifier from localStorage or generate new one
@@ -8,6 +9,9 @@ import userService from '../services/userService';
 const getUserIdentifier = () => {
   return userService.getUserIdentifier();
 };
+
+// In-memory cache for single recipe fetching (used by useRecipe, beneficial here too)
+const recipeCache = new Map();
 
 /**
  * Custom hook for fetching favorites
@@ -23,20 +27,55 @@ export function useFavorites() {
     try {
       setLoading(true);
       setError(null);
-      const response = await favoriteService.getFavorites(userIdentifier);
       
-      if (response.success) {
-        setFavorites(response.data || []);
-      } else {
-        setError(response.message || 'Failed to fetch favorites');
+      // 1. Get favorite IDs from localStorage (The source of truth for the frontend bug)
+      const localFavoritesIds = JSON.parse(localStorage.getItem('favorites') || '[]');
+
+      if (localFavoritesIds.length === 0) {
+          setFavorites([]);
+          setLoading(false);
+          return;
       }
+      
+      // 2. Fetch full recipe data for each ID concurrently
+      const fetchPromises = localFavoritesIds.map(id => {
+          // Check cache first (implements query caching logic from previous step)
+          if (recipeCache.has(id)) {
+              return Promise.resolve({ id: id, recipe: recipeCache.get(id) });
+          }
+
+          // Fetch from API if not in cache
+          return recipeService.getRecipeById(id)
+              .then(response => {
+                  if (response.success) {
+                      recipeCache.set(id, response.data); // Update cache
+                      return { id: id, recipe: response.data }; 
+                  }
+                  return { id: id, recipe: null }; // Failed to fetch one item
+              })
+              .catch(() => ({ id: id, recipe: null })); // Handle fetch error
+      });
+      
+      const loadedFavorites = await Promise.all(fetchPromises);
+      
+      // 3. Filter out null/failed fetches and structure the data for ProfilePage.jsx
+      const validFavorites = loadedFavorites.filter(fav => fav.recipe);
+
+      setFavorites(validFavorites);
+
+      // --- Optional: Combine or prioritize external API results if available ---
+      // const apiResponse = await favoriteService.getFavorites(userIdentifier);
+      // // If you trust the local storage list of IDs more than the API list:
+      // // setFavorites(validFavorites);
+      // -------------------------------------------------------------------------
+
     } catch (err) {
       setError(err.message || 'An error occurred while fetching favorites');
       setFavorites([]);
     } finally {
       setLoading(false);
     }
-  }, [userIdentifier]);
+  }, [userIdentifier]); // Dependency on userIdentifier for future API integration
 
   useEffect(() => {
     fetchFavorites();
@@ -49,6 +88,7 @@ export function useFavorites() {
     refetch: fetchFavorites,
   };
 }
+
 
 /**
  * Custom hook for toggling favorites

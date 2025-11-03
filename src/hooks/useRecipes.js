@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import recipeService from '../services/recipeService';
 
+// In-memory cache for single recipe fetching (ADDED)
+const recipeCache = new Map();
+
 /**
  * Custom hook for fetching recipes
  * @param {Object} params - Query parameters
@@ -21,6 +24,14 @@ export function useRecipes(params = {}) {
       if (response.success) {
         setRecipes(response.data || []);
         setPagination(response.pagination || null);
+
+        // Cache individual recipes from list for later detail view (MODIFIED)
+        (response.data || []).forEach(recipe => {
+            if (recipe.id && !recipeCache.has(recipe.id)) {
+                recipeCache.set(recipe.id, recipe);
+            }
+        });
+
       } else {
         setError(response.message || 'Failed to fetch recipes');
       }
@@ -61,6 +72,14 @@ export function useRecipe(id) {
       return;
     }
 
+    // Check cache first (MODIFIED)
+    if (recipeCache.has(id)) {
+      setRecipe(recipeCache.get(id));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -68,6 +87,7 @@ export function useRecipe(id) {
       
       if (response.success) {
         setRecipe(response.data);
+        recipeCache.set(id, response.data); // Store in cache (MODIFIED)
       } else {
         setError(response.message || 'Failed to fetch recipe');
       }

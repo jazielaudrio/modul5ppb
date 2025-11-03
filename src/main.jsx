@@ -1,5 +1,5 @@
 // src/main.jsx
-import { StrictMode, useState } from 'react'
+import { StrictMode, useState, useEffect } from 'react' // <-- Import useEffect
 import { createRoot } from 'react-dom/client'
 import SplashScreen from './pages/SplashScreen';
 import HomePage from './pages/HomePage';
@@ -14,13 +14,77 @@ import MobileNavbar from './components/navbar/MobileNavbar';
 import './index.css'
 import PWABadge from './PWABadge';
 
+function getInitialStateFromUrl() {
+  // Hanya jalankan di browser
+  if (typeof window === 'undefined') {
+    return {
+      showSplash: true,
+      currentPage: 'home',
+      mode: 'list',
+      selectedRecipeId: null,
+      selectedCategory: 'makanan',
+      editingRecipeId: null,
+    };
+  }
+  
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get('page');
+  const id = params.get('id');
+  const category = params.get('category');
+  
+  if (page === 'detail' && id) {
+    // Set initial state to show splash but transition directly to detail after splash
+    return {
+      showSplash: true, 
+      currentPage: category || 'home',
+      mode: 'detail',
+      selectedRecipeId: id,
+      selectedCategory: category || 'makanan',
+      editingRecipeId: null,
+    };
+  }
+  
+  // Default state
+  return {
+    showSplash: true,
+    currentPage: 'home',
+    mode: 'list',
+    selectedRecipeId: null,
+    selectedCategory: 'makanan',
+    editingRecipeId: null,
+  };
+}
+
+
 function AppRoot() {
-  const [showSplash, setShowSplash] = useState(true);
-  const [currentPage, setCurrentPage] = useState('home');
-  const [mode, setMode] = useState('list'); // 'list', 'detail', 'create', 'edit'
-  const [selectedRecipeId, setSelectedRecipeId] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('makanan');
-  const [editingRecipeId, setEditingRecipeId] = useState(null);
+  const initialState = getInitialStateFromUrl(); // <-- Gunakan state awal dari URL
+  
+  const [showSplash, setShowSplash] = useState(initialState.showSplash);
+  const [currentPage, setCurrentPage] = useState(initialState.currentPage);
+  const [mode, setMode] = useState(initialState.mode); // 'list', 'detail', 'create', 'edit'
+  const [selectedRecipeId, setSelectedRecipeId] = useState(initialState.selectedRecipeId);
+  const [selectedCategory, setSelectedCategory] = useState(initialState.selectedCategory);
+  const [editingRecipeId, setEditingRecipeId] = useState(initialState.editingRecipeId);
+
+  // Effect to sync URL with state changes for deep linking
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (mode === 'detail' && selectedRecipeId) {
+      params.set('page', 'detail');
+      params.set('id', selectedRecipeId);
+      // Pastikan kategori valid untuk URL
+      const categoryParam = ['makanan', 'minuman'].includes(selectedCategory) ? selectedCategory : 'makanan';
+      params.set('category', categoryParam);
+    } 
+
+    const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+
+    // Gunakan replaceState untuk memperbarui URL tanpa menambah riwayat browser
+    if (window.location.href !== window.location.origin + newUrl) {
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [mode, selectedRecipeId, selectedCategory]); // <-- Dependency array berisi state yang relevan
 
   const handleSplashComplete = () => {
     setShowSplash(false);
@@ -156,4 +220,3 @@ createRoot(document.getElementById('root')).render(
     <AppRoot />
   </StrictMode>,
 )
-
