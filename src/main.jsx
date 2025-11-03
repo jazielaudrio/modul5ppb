@@ -1,5 +1,5 @@
 // src/main.jsx
-import { StrictMode, useState, useEffect } from 'react' // <-- Import useEffect
+import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import SplashScreen from './pages/SplashScreen';
 import HomePage from './pages/HomePage';
@@ -105,6 +105,15 @@ function AppRoot() {
     setSelectedRecipeId(recipeId);
     setSelectedCategory(category || currentPage);
     setMode('detail');
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('mode', 'detail');
+      url.searchParams.set('recipeId', recipeId);
+      if (category) url.searchParams.set('category', category);
+      window.history.pushState({}, '', url.toString());
+    } catch (e) {
+      // ignore
+    }
   };
 
   const handleEditRecipe = (recipeId) => {
@@ -182,6 +191,24 @@ function AppRoot() {
         return <HomePage onRecipeClick={handleRecipeClick} onNavigate={handleNavigation} />;
     }
   };
+
+  // Read deep link params on first render
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const modeParam = params.get('mode');
+      const recipeIdParam = params.get('recipeId');
+      const categoryParam = params.get('category');
+
+      if (modeParam === 'detail' && recipeIdParam) {
+        setSelectedRecipeId(recipeIdParam);
+        setSelectedCategory(categoryParam || 'makanan');
+        setMode('detail');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;

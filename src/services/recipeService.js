@@ -1,6 +1,12 @@
 import { apiClient } from '../config/api';
 
 class RecipeService {
+  constructor() {
+    // In-memory cache: key -> { ts, data }
+    this._cache = new Map();
+    this._diskCachePrefix = 'recipes_cache_v1_';
+    this._defaultTtl = 1000 * 60 * 5; // 5 minutes
+  }
   /**
    * Get all recipes with optional filters
    * @param {Object} params - Query parameters
@@ -15,7 +21,42 @@ class RecipeService {
    */
   async getRecipes(params = {}) {
     try {
+      const key = JSON.stringify(params || {});
+
+      // Check in-memory cache
+      const cached = this._cache.get(key);
+      const now = Date.now();
+      if (cached && (now - cached.ts) < this._defaultTtl) {
+        return { success: true, data: cached.data, pagination: cached.pagination, cached: true };
+      }
+
+      // Check disk cache (localStorage)
+      try {
+        const disk = localStorage.getItem(this._diskCachePrefix + key);
+        if (disk) {
+          const parsed = JSON.parse(disk);
+          if (now - parsed.ts < this._defaultTtl) {
+            // populate in-memory and return
+            this._cache.set(key, { ts: parsed.ts, data: parsed.data, pagination: parsed.pagination });
+            return { success: true, data: parsed.data, pagination: parsed.pagination, cached: true };
+          }
+        }
+      } catch (e) {
+        // ignore localStorage errors
+        console.warn('RecipeService disk cache error', e);
+      }
+
       const response = await apiClient.get('/api/v1/recipes', { params });
+      if (response && response.success) {
+        // store in caches
+        try {
+          this._cache.set(key, { ts: now, data: response.data, pagination: response.pagination || null });
+          localStorage.setItem(this._diskCachePrefix + key, JSON.stringify({ ts: now, data: response.data, pagination: response.pagination || null }));
+        } catch (e) {
+          // ignore cache write errors
+        }
+      }
+
       return response;
     } catch (error) {
       throw error;

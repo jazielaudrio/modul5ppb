@@ -232,31 +232,30 @@ export default function RecipeDetail({ recipeId, onBack, onEdit, category = 'mak
         </div>
       </div>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        {/* Recipe Header */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-3xl overflow-hidden shadow-xl border border-white/40 mb-8">
-          {/* Hero Image */}
-          <div className="relative h-64 md:h-96 overflow-hidden">
-            <img
-              src={recipe.image_url}
-              alt={recipe.name}
-              className="w-full h-full object-cover"
-              loading="lazy" // Added lazy load
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            
-            {/* Favorite Button - Use component */}
-            <div className="absolute top-4 right-4 z-10">
-              <FavoriteButton recipeId={recipeId} size="lg" />
-            </div>
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        {/* Recipe Header */}
+        <div className="bg-white/60 backdrop-blur-sm rounded-3xl overflow-hidden shadow-xl border border-white/40 mb-8">
+          {/* Hero Image */}
+          <div className="relative h-64 md:h-96 overflow-hidden">
+            <img
+              src={recipe.image_url}
+              alt={recipe.name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            
+            {/* Favorite Button - Use component */}
+            <div className="absolute top-4 right-4 z-10">
+              <FavoriteButton recipeId={recipeId} size="lg" />
+            </div>
 
-            {/* Category Badge */}
-            <div className="absolute bottom-4 left-4">
-              <span className={`${colors.text} ${colors.bg} px-4 py-2 rounded-full text-sm font-semibold`}>
-                {category === 'makanan' ? 'Makanan' : 'Minuman'}
-              </span>
-            </div>
-          </div>
+            {/* Category Badge */}
+            <div className="absolute bottom-4 left-4">
+              <span className={`${colors.text} ${colors.bg} px-4 py-2 rounded-full text-sm font-semibold`}>
+                {category === 'makanan' ? 'Makanan' : 'Minuman'}
+              </span>
+            </div>
+          </div>
 
           {/* Recipe Info */}
           <div className="p-6 md:p-8">

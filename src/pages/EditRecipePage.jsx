@@ -280,8 +280,8 @@ export default function EditRecipePage({ recipeId, onBack, onSuccess }) {
       updateData.steps = validSteps; 
       // END FIX 3
 
-      // Step 3: Update recipe using PUT
-      const result = await recipeService.updateRecipe(recipeId, updateData);
+      // Step 3: Update recipe using PUT
+      const result = await recipeService.updateRecipe(recipeId, updateData);
 
       if (result.success) {
         alert('Resep berhasil diperbarui!');

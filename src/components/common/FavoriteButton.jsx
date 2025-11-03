@@ -6,8 +6,16 @@ import { Heart } from 'lucide-react';
  * FavoriteButton Component
  * Toggles favorite status with localStorage support
  */
-export default function FavoriteButton({ recipeId, onToggle, showCount = false, initialCount = 0, size = 'md' }) {
-  const [isFavorited, setIsFavorited] = useState(false);
+export default function FavoriteButton({
+  recipeId,
+  onToggle,
+  onServerToggle, // optional async toggle handler passed from parent
+  isFavorited: isFavoritedProp,
+  showCount = false,
+  initialCount = 0,
+  size = 'md',
+}) {
+  const [isFavorited, setIsFavorited] = useState(!!isFavoritedProp);
   const [favoriteCount, setFavoriteCount] = useState(initialCount);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -24,41 +32,68 @@ export default function FavoriteButton({ recipeId, onToggle, showCount = false, 
     lg: 'w-6 h-6'
   };
 
-  // Check if recipe is favorited on mount
+  // Initialize favorited state
   useEffect(() => {
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    setIsFavorited(favorites.includes(recipeId));
-  }, [recipeId]);
+    if (typeof isFavoritedProp !== 'undefined') {
+      setIsFavorited(!!isFavoritedProp);
+      return;
+    }
+
+    // fallback to localStorage if no server prop provided
+    try {
+      const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+      setIsFavorited(favorites.includes(recipeId));
+    } catch (e) {
+      setIsFavorited(false);
+    }
+  }, [recipeId, isFavoritedProp]);
 
   const handleToggle = async (e) => {
     e.stopPropagation(); // Prevent card click
-    
+
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 300);
 
-    // Toggle in localStorage
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    const index = favorites.indexOf(recipeId);
-    
-    let newFavoritedState;
-    if (index > -1) {
-      // Remove from favorites
-      favorites.splice(index, 1);
-      newFavoritedState = false;
-      setFavoriteCount(prev => Math.max(0, prev - 1));
-    } else {
-      // Add to favorites
-      favorites.push(recipeId);
-      newFavoritedState = true;
-      setFavoriteCount(prev => prev + 1);
-    }
-    
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-    setIsFavorited(newFavoritedState);
+    // If a server toggle handler is provided, use it (preferred)
+    if (onServerToggle && typeof onServerToggle === 'function') {
+      try {
+        const res = await onServerToggle(recipeId);
+        // If parent returns new state, use it; otherwise toggle locally
+        if (typeof res === 'boolean') {
+          setIsFavorited(res);
+        } else {
+          setIsFavorited(prev => !prev);
+        }
+      } catch (err) {
+        // fallback: no-op but keep UI stable
+        console.error('Server toggle failed', err);
+      }
 
-    // Call parent callback if provided
-    if (onToggle) {
-      onToggle(recipeId, newFavoritedState);
+      if (onToggle) onToggle(recipeId);
+      return;
+    }
+
+    // Fallback: toggle in localStorage
+    try {
+      const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+      const index = favorites.indexOf(recipeId);
+
+      let newFavoritedState;
+      if (index > -1) {
+        favorites.splice(index, 1);
+        newFavoritedState = false;
+        setFavoriteCount(prev => Math.max(0, prev - 1));
+      } else {
+        favorites.push(recipeId);
+        newFavoritedState = true;
+        setFavoriteCount(prev => prev + 1);
+      }
+
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+      setIsFavorited(newFavoritedState);
+      if (onToggle) onToggle(recipeId, newFavoritedState);
+    } catch (e) {
+      console.error('Favorite toggle failed', e);
     }
   };
 

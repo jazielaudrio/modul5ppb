@@ -2,6 +2,7 @@
 import { Clock, Star, Coffee, ChefHat } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import FavoriteButton from '../common/FavoriteButton';
+import { useFavorites, useToggleFavorite } from '../../hooks/useFavorites';
 
 export default function RecipeGrid({ recipes, onRecipeClick }) {
   const [visibleCards, setVisibleCards] = useState(new Set());
@@ -33,6 +34,17 @@ export default function RecipeGrid({ recipes, onRecipeClick }) {
     };
   }, [recipes]);
 
+  const { favorites, refetch } = useFavorites();
+  const { toggleFavorite } = useToggleFavorite();
+
+  const checkIsFavorited = (favItem, id) => {
+    if (favItem == null) return false;
+    if (typeof favItem === 'object') {
+      return favItem.id === id || favItem.recipe_id === id || favItem.recipeId === id || (favItem.recipe && favItem.recipe.id === id);
+    }
+    return Number(favItem) === id;
+  };
+
   return (
     <section>
       <h1 className="text-3xl md:text-5xl font-bold text-slate-800 text-center mb-4">
@@ -58,9 +70,11 @@ export default function RecipeGrid({ recipes, onRecipeClick }) {
               className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl md:rounded-3xl overflow-hidden shadow-lg md:shadow-2xl shadow-green-500/5 hover:shadow-green-500/15 transition-all duration-500 cursor-pointer group-hover:scale-105 group-hover:bg-white/20">
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <div className="relative h-32 md:h-56 overflow-hidden">
-                <img 
-                  src={recipe.image_url}
+                <img
+                  src={visibleCards.has(index) ? recipe.image_url : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='}
+                  data-src={recipe.image_url}
                   alt={recipe.name}
+                  loading="lazy"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   loading="lazy" // ADDED
                 />
@@ -68,7 +82,13 @@ export default function RecipeGrid({ recipes, onRecipeClick }) {
                 
                 {/* Favorite Button */}
                 <div className="absolute top-3 right-3 z-10">
-                  <FavoriteButton recipeId={recipe.id} size="sm" />
+                  <FavoriteButton
+                    recipeId={recipe.id}
+                    size="sm"
+                    isFavorited={favorites && favorites.some(f => checkIsFavorited(f, recipe.id))}
+                    onServerToggle={toggleFavorite}
+                    onToggle={() => { if (refetch) refetch(); }}
+                  />
                 </div>
               </div>
               <div className="relative z-10 p-4 md:p-8">
